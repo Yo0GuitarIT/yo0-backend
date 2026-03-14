@@ -5,13 +5,16 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// Setup 註冊所有路由到 Gin 引擎
 func Setup(r *gin.Engine) {
+	// 健康檢查
 	r.GET("/", func(c *gin.Context) {
 		c.JSON(200, gin.H{"message": "yo0-backend is running!"})
 	})
 
+	// /photos 路由群組
 	photos := r.Group("/photos")
 	{
-		photos.GET("/random", handler.GetRandomPhoto)
+		photos.GET("/random", handler.GetRandomPhoto) // GET /photos/random
 	}
 }

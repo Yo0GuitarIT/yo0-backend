@@ -5,6 +5,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// GetRandomPhoto 處理 GET /photos/random 請求
+// 呼叫 service 層取得照片資料後，直接回傳 Unsplash 的原始狀態碼與 JSON
 func GetRandomPhoto(c *gin.Context) {
 	result, statusCode, err := service.GetRandomPhoto()
 	if err != nil {
