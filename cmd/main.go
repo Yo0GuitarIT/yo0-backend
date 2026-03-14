@@ -1,11 +1,21 @@
 package main
 
 import (
+	"log"
+
 	"github.com/Yo0GuitarIT/yo0-backend/internal/router"
+	"github.com/Yo0GuitarIT/yo0-backend/internal/service"
 	"github.com/gin-gonic/gin"
 )
 
 func main() {
+	// 背景執行 Telegram Bot（Long Polling）
+	go func() {
+		if err := service.StartBot(); err != nil {
+			log.Printf("Telegram bot 錯誤: %v", err)
+		}
+	}()
+
 	// 建立 Gin 引擎，附帶 Logger 和 Recovery middleware
 	r := gin.Default()
 
