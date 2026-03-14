@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/robfig/cron/v3"
 )
 
 // StartBot 啟動 Telegram Bot，使用 Long Polling 監聽訊息
@@ -17,6 +19,9 @@ func StartBot() error {
 	}
 
 	log.Printf("Telegram bot 已啟動：@%s", bot.Self.UserName)
+
+	// 啟動定時排程（每天台灣時間 06:00 發送照片）
+	StartScheduler(bot)
 
 	// 設定 Long Polling，timeout 60 秒
 	u := tgbotapi.NewUpdate(0)
@@ -55,4 +60,40 @@ func StartBot() error {
 	}
 
 	return nil
+}
+
+// StartScheduler 啟動定時排程，每天台灣時間 06:00 自動發送隨機照片
+// 需要環境變數 TELEGRAM_CHAT_ID 指定發送目標
+func StartScheduler(bot *tgbotapi.BotAPI) {
+	chatIDStr := os.Getenv("TELEGRAM_CHAT_ID")
+	chatID, err := strconv.ParseInt(chatIDStr, 10, 64)
+	if err != nil {
+		log.Printf("[Scheduler] TELEGRAM_CHAT_ID 設定錯誤: %v", err)
+		return
+	}
+
+	c := cron.New()
+
+	// CRON_TZ=Asia/Taipei 確保不受伺服器時區影響
+	// 0 6 * * * = 每天 06:00
+	c.AddFunc("CRON_TZ=Asia/Taipei 0 6 * * *", func() {
+		photo, _, err := GetRandomPhoto()
+		if err != nil {
+			log.Printf("[Scheduler] 取得照片失敗: %v", err)
+			return
+		}
+
+		urls, ok := photo["urls"].(map[string]interface{})
+		if !ok {
+			log.Printf("[Scheduler] 照片資料格式錯誤")
+			return
+		}
+
+		imageURL, _ := urls["regular"].(string)
+		bot.Send(tgbotapi.NewMessage(chatID, "🌅 早安！今日隨機照片：\n"+imageURL))
+		log.Printf("[Scheduler] 已發送早安照片")
+	})
+
+	c.Start()
+	log.Printf("[Scheduler] 定時排程已啟動，每天台灣時間 06:00 發送")
 }
