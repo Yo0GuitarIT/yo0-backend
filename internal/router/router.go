@@ -12,6 +12,9 @@ func Setup(r *gin.Engine) {
 		c.JSON(200, gin.H{"message": "yo0-backend is running!"})
 	})
 
+	// 測試用：確認伺服器對 Telegram 連線正常
+	r.GET("/ping", handler.Ping)
+
 	// /photos 路由群組
 	photos := r.Group("/photos")
 	{

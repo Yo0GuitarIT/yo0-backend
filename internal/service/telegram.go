@@ -10,6 +10,18 @@ import (
 	"github.com/robfig/cron/v3"
 )
 
+// botInstance 持有全域 bot 實例，供其他 service 使用
+var botInstance *tgbotapi.BotAPI
+
+// SendMessage 發送訊息到指定 Chat ID
+func SendMessage(chatID int64, text string) error {
+	if botInstance == nil {
+		return fmt.Errorf("bot 尚未初始化")
+	}
+	_, err := botInstance.Send(tgbotapi.NewMessage(chatID, text))
+	return err
+}
+
 // StartBot 啟動 Telegram Bot，使用 Long Polling 監聽訊息
 // 不需要 HTTPS / ngrok，適合本地開發
 func StartBot() error {
@@ -17,6 +29,7 @@ func StartBot() error {
 	if err != nil {
 		return fmt.Errorf("無法建立 bot: %w", err)
 	}
+	botInstance = bot
 
 	log.Printf("Telegram bot 已啟動：@%s", bot.Self.UserName)
 
