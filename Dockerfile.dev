@@ -1,0 +1,7 @@
+FROM golang:1.25-bookworm
+
+WORKDIR /workspace
+
+RUN go install github.com/air-verse/air@latest
+
+EXPOSE 8080

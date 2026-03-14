@@ -1,0 +1,16 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    volumes:
+      - .:/workspace:cached # 本地程式碼掛進容器
+      - go-cache:/root/go/pkg # Go 模組快取，避免每次重新下載
+    ports:
+      - "8080:8080"
+    command: air # 啟動 hot reload
+    env_file:
+      - .env
+
+volumes:
+  go-cache:
