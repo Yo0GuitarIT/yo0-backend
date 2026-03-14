@@ -16,6 +16,9 @@ FROM debian:bookworm-slim
 
 WORKDIR /app
 
+# 安裝 CA 憑證，讓容器能驗證 HTTPS（Telegram API 需要）
+RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
+
 # 複製編譯好的執行檔
 COPY --from=builder /app/main .
 
