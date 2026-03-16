@@ -23,4 +23,5 @@ RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/
 COPY --from=builder /app/main .
 
 EXPOSE 8080
+ENV GIN_MODE=release
 CMD ["./main"]
