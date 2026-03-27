@@ -5,10 +5,17 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"encoding/json"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/robfig/cron/v3"
 )
+// UserProfile 用於儲存用戶地理位置資料
+type UserProfile struct {
+	ChatID    int64   `json:"chat_id"`
+	Latitude  float64 `json:"latitude"`
+	Longitude float64 `json:"longitude"`
+}
 
 // botInstance 持有全域 bot 實例，供其他 service 使用
 var botInstance *tgbotapi.BotAPI
@@ -47,6 +54,29 @@ func StartBot() error {
 			continue
 		}
 
+		// --- 新增：處理地理位置分享 ---
+    if update.Message.Location != nil {
+        loc := update.Message.Location
+        profile := UserProfile{ // 記得在外面定義這個 Struct
+            ChatID:    update.Message.Chat.ID,
+            Latitude:  loc.Latitude,
+            Longitude: loc.Longitude,
+        }
+
+        // 寫入 JSON 檔案
+        jsonData, _ := json.MarshalIndent(profile, "", "  ")
+        err := os.WriteFile("location.json", jsonData, 0644)
+        
+        if err != nil {
+            bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "❌ 座標儲存失敗"))
+        } else {
+            msg := fmt.Sprintf("📍 座標已記憶！\nLat: %.4f, Lon: %.4f\n今後每日 06:00 將以此地預報。", loc.Latitude, loc.Longitude)
+            bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, msg))
+        }
+        continue // 處理完 Location 就跳過後面的 Command 判斷
+    }
+
+		// 處理指令
 		switch update.Message.Command() {
 		case "start":
 			msg := tgbotapi.NewMessage(update.Message.Chat.ID,
