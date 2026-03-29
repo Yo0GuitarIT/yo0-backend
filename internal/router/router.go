@@ -20,4 +20,10 @@ func Setup(r *gin.Engine) {
 	{
 		photos.GET("/random", handler.GetRandomPhoto) // GET /photos/random
 	}
+
+	// weather 路由群組
+	weather := r.Group("/weather")
+	{
+		weather.GET("/current", handler.GetCurrentWeather) // GET /weather/current
+	}
 }
