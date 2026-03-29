@@ -5,36 +5,36 @@ import (
 	"log"
 
 	"github.com/Yo0GuitarIT/yo0-backend/internal/config"
-	tgBotApi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	telegramapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
 // botInstance 持有全域 bot 實例，供同 package 內的其他功能使用。
 // 類似前端的 singleton pattern：let botClient: BotAPI | null = null
-var botInstance *tgBotApi.BotAPI
+var botInstance *telegramapi.BotAPI
 
 // StartBot 啟動 Telegram Bot，使用 Long Polling 監聽訊息
 func StartBot() error {
-	bot, err := tgBotApi.NewBotAPI(config.TelegramBotToken())
+	botClient, err := telegramapi.NewBotAPI(config.TelegramBotToken())
 	if err != nil {
 		return fmt.Errorf("無法建立 bot: %w", err)
 	}
-	botInstance = bot
+	botInstance = botClient
 
-	log.Printf("Telegram bot 已啟動：@%s", bot.Self.UserName)
+	log.Printf("Telegram bot 已啟動：@%s", botClient.Self.UserName)
 
 	// 啟動定時排程
-	StartScheduler(bot)
+	StartScheduler(botClient)
 
 	// 設定 Long Polling，timeout 60 秒
-	u := tgBotApi.NewUpdate(0)
-	u.Timeout = 60
-	updates := bot.GetUpdatesChan(u)
+	updateConfig := telegramapi.NewUpdate(0)
+	updateConfig.Timeout = 60
+	updatesChannel := botClient.GetUpdatesChan(updateConfig)
 
-	for update := range updates {
+	for update := range updatesChannel {
 		if update.Message == nil {
 			continue
 		}
-		handleCommand(bot, update.Message)
+		handleCommand(botClient, update.Message)
 	}
 
 	return nil
@@ -42,12 +42,12 @@ func StartBot() error {
 
 // handleCommand 根據指令名稱派發到對應的處理函式
 // 類似前端 router 的概念：switch on command → handler
-func handleCommand(bot *tgBotApi.BotAPI, msg *tgBotApi.Message) {
-	chatID := msg.Chat.ID
+func handleCommand(botClient *telegramapi.BotAPI, message *telegramapi.Message) {
+	chatID := message.Chat.ID
 
-	switch msg.Command() {
+	switch message.Command() {
 	case "menu":
-		bot.Send(tgBotApi.NewMessage(chatID,
+		botClient.Send(telegramapi.NewMessage(chatID,
 			"👋 yo0-backend bot 啟動成功！\n\n"+
 				"可用指令：\n"+
 				"/weather - 查詢預設城市 24 小時天氣\n"+
@@ -57,19 +57,19 @@ func handleCommand(bot *tgBotApi.BotAPI, msg *tgBotApi.Message) {
 				"/image - 取得一張隨機照片"))
 
 	case "weather":
-		handleWeatherCommand(bot, msg)
+		handleWeatherCommand(botClient, message)
 
 	case "setcity":
-		handleSetCityCommand(bot, msg)
+		handleSetCityCommand(botClient, message)
 
 	case "mycity":
 		city := getUserDefaultCity(chatID)
-		bot.Send(tgBotApi.NewMessage(chatID, "你的預設城市是："+city))
+		botClient.Send(telegramapi.NewMessage(chatID, "你的預設城市是："+city))
 
 	case "image":
-		handleImageCommand(bot, msg)
+		handleImageCommand(botClient, message)
 
 	default:
-		bot.Send(tgBotApi.NewMessage(chatID, "不支援的指令，請使用 /menu 查看可用功能"))
+		botClient.Send(telegramapi.NewMessage(chatID, "不支援的指令，請使用 /menu 查看可用功能"))
 	}
 }

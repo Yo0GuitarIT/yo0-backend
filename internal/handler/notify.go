@@ -11,8 +11,8 @@ import (
 
 // TestMorningPush 處理 POST /notify/test 請求
 // 可用 query chatId 指定接收者，未提供則使用 TELEGRAM_CHAT_ID
-func TestMorningPush(c *gin.Context) {
-	chatIDQuery := c.Query("chatId")
+func TestMorningPush(context *gin.Context) {
+	chatIDQuery := context.Query("chatId")
 
 	var (
 		chatID int64
@@ -22,23 +22,23 @@ func TestMorningPush(c *gin.Context) {
 	if chatIDQuery == "" {
 		chatID, err = config.TelegramChatID()
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			context.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
 	} else {
 		chatID, err = strconv.ParseInt(chatIDQuery, 10, 64)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "chatId 格式錯誤，請提供數字"})
+			context.JSON(http.StatusBadRequest, gin.H{"error": "chatId 格式錯誤，請提供數字"})
 			return
 		}
 	}
 
 	if err := service.SendMorningPush(chatID); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		context.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
+	context.JSON(http.StatusOK, gin.H{
 		"message": "測試推播已送出",
 		"chatId":  chatID,
 	})

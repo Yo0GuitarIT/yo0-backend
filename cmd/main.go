@@ -17,15 +17,15 @@ func main() {
 	}()
 
 	// 建立 Gin 引擎，附帶 Logger 和 Recovery middleware
-	r := gin.Default()
+	routerEngine := gin.Default()
 
 	// 只信任本機（適用於無反向代理的直接部署）
 	// 若前面有 nginx / Cloud Run 等反向代理，請改為對應的 IP 段
-	r.SetTrustedProxies(nil)
+	routerEngine.SetTrustedProxies(nil)
 
 	// 註冊所有路由
-	router.Setup(r)
+	router.Setup(routerEngine)
 
 	// 啟動 HTTP 伺服器，監聽 8080 port
-	r.Run(":8080")
+	routerEngine.Run(":8080")
 }

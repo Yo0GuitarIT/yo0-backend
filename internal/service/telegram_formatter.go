@@ -22,28 +22,28 @@ func formatWeatherMessage(data *model.WeatherSummary) string {
 		locationName = fallbackCity
 	}
 
-	msg := fmt.Sprintf("🌤 %s 24 小時天氣\n", locationName)
+	messageText := fmt.Sprintf("🌤 %s 24 小時天氣\n", locationName)
 
 	from := data.TimeRange.From
 	to := data.TimeRange.To
 	if from != "" && to != "" {
-		msg += fmt.Sprintf("⏱ 時間\n%s\n%s\n\n",
+		messageText += fmt.Sprintf("⏱ 時間\n%s\n%s\n\n",
 			formatRFC3339ForDisplay(from),
 			formatRFC3339ForDisplay(to),
 		)
 	}
 
 	if data.Current != nil {
-		c := data.Current
-		msg += fmt.Sprintf("目前時段：%s\n", safeString(c.Weather, "資料不足"))
-		msg += fmt.Sprintf("🌧 降雨機率：%s%%\n", safeString(c.RainProbability, "-"))
-		msg += fmt.Sprintf("🌡 溫度：%s°C ~ %s°C\n", safeString(c.MinTempC, "-"), safeString(c.MaxTempC, "-"))
-		msg += fmt.Sprintf("🙂 體感：%s", safeString(c.Comfort, "-"))
+		currentPeriod := data.Current
+		messageText += fmt.Sprintf("目前時段：%s\n", safeString(currentPeriod.Weather, "資料不足"))
+		messageText += fmt.Sprintf("🌧 降雨機率：%s%%\n", safeString(currentPeriod.RainProbability, "-"))
+		messageText += fmt.Sprintf("🌡 溫度：%s°C ~ %s°C\n", safeString(currentPeriod.MinTempC, "-"), safeString(currentPeriod.MaxTempC, "-"))
+		messageText += fmt.Sprintf("🙂 體感：%s", safeString(currentPeriod.Comfort, "-"))
 	} else {
-		msg += "目前時段：資料不足"
+		messageText += "目前時段：資料不足"
 	}
 
-	return msg
+	return messageText
 }
 
 func safeString(s, fallback string) string {

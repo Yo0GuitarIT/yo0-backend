@@ -8,12 +8,12 @@ import (
 )
 
 // GetRandomPhoto 處理 GET /photos/random 請求
-func GetRandomPhoto(c *gin.Context) {
+func GetRandomPhoto(context *gin.Context) {
 	result, statusCode, err := service.GetRandomPhoto()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		context.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(statusCode, result)
+	context.JSON(statusCode, result)
 }

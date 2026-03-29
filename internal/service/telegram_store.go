@@ -9,8 +9,8 @@ const fallbackCity = "臺南市"
 var userDefaultCity sync.Map
 
 func getUserDefaultCity(chatID int64) string {
-	if v, ok := userDefaultCity.Load(chatID); ok {
-		if city, ok := v.(string); ok && city != "" {
+	if storedValue, found := userDefaultCity.Load(chatID); found {
+		if city, isString := storedValue.(string); isString && city != "" {
 			return city
 		}
 	}

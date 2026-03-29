@@ -3,7 +3,7 @@ package service
 import (
 	"fmt"
 
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	telegramapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
 // SendMessage 發送文字訊息到指定 Chat ID
@@ -11,7 +11,7 @@ func SendMessage(chatID int64, text string) error {
 	if botInstance == nil {
 		return fmt.Errorf("bot 尚未初始化")
 	}
-	_, err := botInstance.Send(tgbotapi.NewMessage(chatID, text))
+	_, err := botInstance.Send(telegramapi.NewMessage(chatID, text))
 	return err
 }
 
@@ -28,7 +28,7 @@ func SendMorningPush(chatID int64) error {
 	}
 
 	imageURL := photo.URLs.Regular
-	if _, err := botInstance.Send(tgbotapi.NewMessage(chatID, "🌅 早安！今日隨機照片：\n"+imageURL)); err != nil {
+	if _, err := botInstance.Send(telegramapi.NewMessage(chatID, "🌅 早安！今日隨機照片：\n"+imageURL)); err != nil {
 		return fmt.Errorf("發送照片失敗: %w", err)
 	}
 
@@ -38,7 +38,7 @@ func SendMorningPush(chatID int64) error {
 		return fmt.Errorf("取得天氣失敗: %w", err)
 	}
 
-	if _, err := botInstance.Send(tgbotapi.NewMessage(chatID, "☀️ 早安！今日天氣預報\n\n"+formatWeatherMessage(weatherData))); err != nil {
+	if _, err := botInstance.Send(telegramapi.NewMessage(chatID, "☀️ 早安！今日天氣預報\n\n"+formatWeatherMessage(weatherData))); err != nil {
 		return fmt.Errorf("發送天氣失敗: %w", err)
 	}
 
