@@ -15,21 +15,11 @@ func SendMessage(chatID int64, text string) error {
 	return err
 }
 
-// SendMorningPush 發送早安推播（隨機照片 + 24 小時天氣）
+// SendMorningPush 發送早安推播（24 小時天氣 + 隨機照片）
 // 供排程器與測試 API 共用同一段邏輯
 func SendMorningPush(chatID int64) error {
 	if botInstance == nil {
 		return fmt.Errorf("bot 尚未初始化")
-	}
-
-	photo, _, err := GetRandomPhoto()
-	if err != nil {
-		return fmt.Errorf("取得照片失敗: %w", err)
-	}
-
-	imageURL := photo.URLs.Regular
-	if _, err := botInstance.Send(telegramapi.NewMessage(chatID, "🌅 早安！今日隨機照片：\n"+imageURL)); err != nil {
-		return fmt.Errorf("發送照片失敗: %w", err)
 	}
 
 	city := getUserDefaultCity(chatID)
@@ -40,6 +30,16 @@ func SendMorningPush(chatID int64) error {
 
 	if _, err := botInstance.Send(telegramapi.NewMessage(chatID, "☀️ 早安！今日天氣預報\n\n"+formatWeatherMessage(weatherData))); err != nil {
 		return fmt.Errorf("發送天氣失敗: %w", err)
+	}
+
+	photo, _, err := GetRandomPhoto()
+	if err != nil {
+		return fmt.Errorf("取得照片失敗: %w", err)
+	}
+
+	imageURL := photo.URLs.Regular
+	if _, err := botInstance.Send(telegramapi.NewMessage(chatID, imageURL)); err != nil {
+		return fmt.Errorf("發送照片失敗: %w", err)
 	}
 
 	return nil
