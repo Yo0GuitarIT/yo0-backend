@@ -26,4 +26,10 @@ func Setup(r *gin.Engine) {
 	{
 		weather.GET("/current", handler.GetCurrentWeather) // GET /weather/current
 	}
+
+	// notify 路由群組
+	notify := r.Group("/notify")
+	{
+		notify.POST("/test", handler.TestMorningPush) // POST /notify/test
+	}
 }

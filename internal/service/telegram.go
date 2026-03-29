@@ -188,13 +188,60 @@ func formatRFC3339ForDisplay(raw string) string {
 	return t.Format("2006-01-02 15:04")
 }
 
-// StartScheduler 啟動定時排程，每天台灣時間 06:00 自動發送隨機照片
-// 需要環境變數 TELEGRAM_CHAT_ID 指定發送目標
-func StartScheduler(bot *tgbotapi.BotAPI) {
+// GetDefaultChatID 從環境變數讀取預設推播目標
+func GetDefaultChatID() (int64, error) {
 	chatIDStr := os.Getenv("TELEGRAM_CHAT_ID")
 	chatID, err := strconv.ParseInt(chatIDStr, 10, 64)
 	if err != nil {
-		log.Printf("[Scheduler] TELEGRAM_CHAT_ID 設定錯誤: %v", err)
+		return 0, fmt.Errorf("TELEGRAM_CHAT_ID 設定錯誤: %w", err)
+	}
+	return chatID, nil
+}
+
+// SendMorningPush 發送早安推播內容（圖片 + 24 小時天氣）
+// 給排程與測試 API 共用同一段發送邏輯
+func SendMorningPush(chatID int64) error {
+	if botInstance == nil {
+		return fmt.Errorf("bot 尚未初始化")
+	}
+
+	photo, _, err := GetRandomPhoto()
+	if err != nil {
+		return fmt.Errorf("取得照片失敗: %w", err)
+	}
+
+	urls, ok := photo["urls"].(map[string]interface{})
+	if !ok {
+		return fmt.Errorf("照片資料格式錯誤")
+	}
+
+	imageURL, _ := urls["regular"].(string)
+	if _, err := botInstance.Send(tgbotapi.NewMessage(chatID, "🌅 早安！今日隨機照片：\n"+imageURL)); err != nil {
+		return fmt.Errorf("發送照片失敗: %w", err)
+	}
+
+	city := getUserDefaultCity(chatID)
+	weatherData, statusCode, err := GetCurrentWeather(normalizeCityName(city))
+	if err != nil {
+		return fmt.Errorf("取得天氣失敗: %w", err)
+	}
+	if statusCode != 200 {
+		return fmt.Errorf("天氣服務非 200，status=%d", statusCode)
+	}
+
+	if _, err := botInstance.Send(tgbotapi.NewMessage(chatID, "☀️ 早安！今日天氣預報\n\n"+formatWeatherMessage(weatherData))); err != nil {
+		return fmt.Errorf("發送天氣失敗: %w", err)
+	}
+
+	return nil
+}
+
+// StartScheduler 啟動定時排程，每天台灣時間 06:00 自動發送隨機照片
+// 需要環境變數 TELEGRAM_CHAT_ID 指定發送目標
+func StartScheduler(bot *tgbotapi.BotAPI) {
+	chatID, err := GetDefaultChatID()
+	if err != nil {
+		log.Printf("[Scheduler] %v", err)
 		return
 	}
 
@@ -203,21 +250,11 @@ func StartScheduler(bot *tgbotapi.BotAPI) {
 	// CRON_TZ=Asia/Taipei 確保不受伺服器時區影響
 	// 0 6 * * * = 每天 06:00
 	c.AddFunc("CRON_TZ=Asia/Taipei 0 6 * * *", func() {
-		photo, _, err := GetRandomPhoto()
-		if err != nil {
-			log.Printf("[Scheduler] 取得照片失敗: %v", err)
+		if err := SendMorningPush(chatID); err != nil {
+			log.Printf("[Scheduler] 推播失敗: %v", err)
 			return
 		}
-
-		urls, ok := photo["urls"].(map[string]interface{})
-		if !ok {
-			log.Printf("[Scheduler] 照片資料格式錯誤")
-			return
-		}
-
-		imageURL, _ := urls["regular"].(string)
-		bot.Send(tgbotapi.NewMessage(chatID, "🌅 早安！今日隨機照片：\n"+imageURL))
-		log.Printf("[Scheduler] 已發送早安照片")
+		log.Printf("[Scheduler] 已完成早安推播")
 	})
 
 	c.Start()
