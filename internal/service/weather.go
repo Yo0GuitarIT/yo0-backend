@@ -6,20 +6,19 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"os"
 	"sort"
 	"time"
+
+	"github.com/Yo0GuitarIT/yo0-backend/internal/config"
+	"github.com/Yo0GuitarIT/yo0-backend/internal/model"
 )
 
 // GetCurrentWeather 呼叫 CWA 開放資料 API 取得指定城市天氣
 // 回傳：清洗後的 24 小時重點資料、HTTP 狀態碼、錯誤
-func GetCurrentWeather(locationName string) (map[string]interface{}, int, error) {
-	apiKey := os.Getenv("CWB_API_KEY")
-	if apiKey == "" {
-		apiKey = os.Getenv("CWA_API_KEY")
-	}
-	if apiKey == "" {
-		return nil, 500, fmt.Errorf("CWB_API_KEY/CWA_API_KEY 未設定")
+func GetCurrentWeather(locationName string) (*model.WeatherSummary, int, error) {
+	apiKey, err := config.WeatherAPIKey()
+	if err != nil {
+		return nil, http.StatusInternalServerError, err
 	}
 
 	taipei, err := time.LoadLocation("Asia/Taipei")
@@ -57,24 +56,24 @@ func GetCurrentWeather(locationName string) (map[string]interface{}, int, error)
 		return nil, 500, err
 	}
 
-	var result map[string]interface{}
-	if err := json.Unmarshal(body, &result); err != nil {
-		return nil, 500, err
+	var raw map[string]interface{}
+	if err := json.Unmarshal(body, &raw); err != nil {
+		return nil, http.StatusInternalServerError, err
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return result, resp.StatusCode, nil
+		return nil, resp.StatusCode, fmt.Errorf("CWA API 回傳 %d", resp.StatusCode)
 	}
 
-	cleaned, err := extractWeatherSummary(result, locationName, now, timeTo, taipei)
+	cleaned, err := extractWeatherSummary(raw, locationName, now, timeTo, taipei)
 	if err != nil {
-		return nil, 500, err
+		return nil, http.StatusInternalServerError, err
 	}
 
-	return cleaned, resp.StatusCode, nil
+	return cleaned, http.StatusOK, nil
 }
 
-func extractWeatherSummary(raw map[string]interface{}, locationName string, from, to time.Time, loc *time.Location) (map[string]interface{}, error) {
+func extractWeatherSummary(raw map[string]interface{}, locationName string, from, to time.Time, loc *time.Location) (*model.WeatherSummary, error) {
 	records, ok := raw["records"].(map[string]interface{})
 	if !ok {
 		return nil, fmt.Errorf("CWA response 缺少 records")
@@ -82,13 +81,14 @@ func extractWeatherSummary(raw map[string]interface{}, locationName string, from
 
 	locations, ok := records["location"].([]interface{})
 	if !ok || len(locations) == 0 {
-		return map[string]interface{}{
-			"locationName": locationName,
-			"timeRange": map[string]interface{}{
-				"from": from.Format(time.RFC3339),
-				"to":   to.Format(time.RFC3339),
+		return &model.WeatherSummary{
+			LocationName: locationName,
+			TimeRange: model.WeatherTimeRange{
+				From:  from.Format(time.RFC3339),
+				To:    to.Format(time.RFC3339),
+				Hours: 24,
 			},
-			"periods": []interface{}{},
+			Periods: []model.WeatherPeriod{},
 		}, nil
 	}
 
@@ -107,13 +107,13 @@ func extractWeatherSummary(raw map[string]interface{}, locationName string, from
 		return nil, fmt.Errorf("CWA weatherElement 格式錯誤")
 	}
 
-	type period struct {
-		Start time.Time
-		End   time.Time
-		Data  map[string]interface{}
+	type periodEntry struct {
+		start time.Time
+		end   time.Time
+		data  model.WeatherPeriod
 	}
 
-	periodMap := map[string]*period{}
+	periodMap := map[string]*periodEntry{}
 
 	for _, elementItem := range weatherElements {
 		element, ok := elementItem.(map[string]interface{})
@@ -149,66 +149,67 @@ func extractWeatherSummary(raw map[string]interface{}, locationName string, from
 			}
 
 			key := startStr + "|" + endStr
-			item, exists := periodMap[key]
+			entry, exists := periodMap[key]
 			if !exists {
-				item = &period{
-					Start: startAt,
-					End:   endAt,
-					Data: map[string]interface{}{
-						"startTime": startAt.Format(time.RFC3339),
-						"endTime":   endAt.Format(time.RFC3339),
+				entry = &periodEntry{
+					start: startAt,
+					end:   endAt,
+					data: model.WeatherPeriod{
+						StartTime: startAt.Format(time.RFC3339),
+						EndTime:   endAt.Format(time.RFC3339),
 					},
 				}
-				periodMap[key] = item
+				periodMap[key] = entry
 			}
 
 			parameter, _ := timeEntry["parameter"].(map[string]interface{})
-			parameterName, _ := parameter["parameterName"].(string)
+			paramName, _ := parameter["parameterName"].(string)
 
 			switch elementName {
 			case "Wx":
-				item.Data["weather"] = parameterName
+				entry.data.Weather = paramName
 			case "PoP":
-				item.Data["rainProbability"] = parameterName
+				entry.data.RainProbability = paramName
 			case "MinT":
-				item.Data["minTempC"] = parameterName
+				entry.data.MinTempC = paramName
 			case "MaxT":
-				item.Data["maxTempC"] = parameterName
+				entry.data.MaxTempC = paramName
 			case "CI":
-				item.Data["comfort"] = parameterName
+				entry.data.Comfort = paramName
 			}
 		}
 	}
 
-	periods := make([]*period, 0, len(periodMap))
-	for _, p := range periodMap {
-		if p.End.After(from) && p.Start.Before(to) {
-			periods = append(periods, p)
+	entries := make([]*periodEntry, 0, len(periodMap))
+	for _, e := range periodMap {
+		if e.end.After(from) && e.start.Before(to) {
+			entries = append(entries, e)
 		}
 	}
 
-	sort.Slice(periods, func(i, j int) bool {
-		return periods[i].Start.Before(periods[j].Start)
+	sort.Slice(entries, func(i, j int) bool {
+		return entries[i].start.Before(entries[j].start)
 	})
 
-	cleanedPeriods := make([]map[string]interface{}, 0, len(periods))
-	for _, p := range periods {
-		cleanedPeriods = append(cleanedPeriods, p.Data)
+	periods := make([]model.WeatherPeriod, 0, len(entries))
+	for _, e := range entries {
+		periods = append(periods, e.data)
 	}
 
-	response := map[string]interface{}{
-		"locationName": resolvedLocationName,
-		"timeRange": map[string]interface{}{
-			"from":  from.Format(time.RFC3339),
-			"to":    to.Format(time.RFC3339),
-			"hours": 24,
+	summary := &model.WeatherSummary{
+		LocationName: resolvedLocationName,
+		TimeRange: model.WeatherTimeRange{
+			From:  from.Format(time.RFC3339),
+			To:    to.Format(time.RFC3339),
+			Hours: 24,
 		},
-		"periods": cleanedPeriods,
+		Periods: periods,
 	}
 
-	if len(cleanedPeriods) > 0 {
-		response["current"] = cleanedPeriods[0]
+	if len(periods) > 0 {
+		p := periods[0]
+		summary.Current = &p
 	}
 
-	return response, nil
+	return summary, nil
 }

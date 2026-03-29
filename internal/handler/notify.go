@@ -1,8 +1,10 @@
 package handler
 
 import (
+	"net/http"
 	"strconv"
 
+	"github.com/Yo0GuitarIT/yo0-backend/internal/config"
 	"github.com/Yo0GuitarIT/yo0-backend/internal/service"
 	"github.com/gin-gonic/gin"
 )
@@ -14,29 +16,29 @@ func TestMorningPush(c *gin.Context) {
 
 	var (
 		chatID int64
-		err   error
+		err    error
 	)
 
 	if chatIDQuery == "" {
-		chatID, err = service.GetDefaultChatID()
+		chatID, err = config.TelegramChatID()
 		if err != nil {
-			c.JSON(500, gin.H{"error": err.Error()})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
 	} else {
 		chatID, err = strconv.ParseInt(chatIDQuery, 10, 64)
 		if err != nil {
-			c.JSON(400, gin.H{"error": "chatId 格式錯誤，請提供數字"})
+			c.JSON(http.StatusBadRequest, gin.H{"error": "chatId 格式錯誤，請提供數字"})
 			return
 		}
 	}
 
 	if err := service.SendMorningPush(chatID); err != nil {
-		c.JSON(500, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(200, gin.H{
+	c.JSON(http.StatusOK, gin.H{
 		"message": "測試推播已送出",
 		"chatId":  chatID,
 	})

@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"net/http"
+
 	"github.com/Yo0GuitarIT/yo0-backend/internal/service"
 	"github.com/gin-gonic/gin"
 )
@@ -12,7 +14,7 @@ func GetCurrentWeather(c *gin.Context) {
 
 	result, statusCode, err := service.GetCurrentWeather(locationName)
 	if err != nil {
-		c.JSON(500, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
