@@ -5,7 +5,6 @@ services:
       dockerfile: Dockerfile.dev
     volumes:
       - .:/workspace:cached # 本地程式碼掛進容器
-      - ./location.json:/workspace/location.json # 掛載地理位置檔案
       - go-mod-cache:/go/pkg/mod # Go 模組快取，避免每次重新下載
       - go-build-cache:/root/.cache/go-build # Go 編譯快取
     ports:
