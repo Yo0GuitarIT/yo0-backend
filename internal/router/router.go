@@ -32,4 +32,10 @@ func Setup(routerEngine *gin.Engine) {
 	{
 		notifyGroup.POST("/test", handler.TestMorningPush) // POST /notify/test
 	}
+
+	// tarot 路由群組
+	tarotGroup := routerEngine.Group("/tarot")
+	{
+		tarotGroup.GET("/random", handler.GetRandomTarot) // GET /tarot/random
+	}
 }
