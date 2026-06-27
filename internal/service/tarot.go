@@ -120,6 +120,7 @@ var tarotDeck = buildDeck()
 func GetRandomTarot() (*model.Tarot, int, error) {
 	card := tarotDeck[rand.IntN(len(tarotDeck))] // 0 ~ 77
 	card.Reversed = rand.IntN(2) == 1            // 50% 逆位
+	card.Meaning = meaningFor(card.Name, card.Reversed)
 
 	return &card, 200, nil
 }

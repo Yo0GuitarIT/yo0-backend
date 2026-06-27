@@ -18,10 +18,11 @@ func handleDiscordInteraction(session *discordgo.Session, i *discordgo.Interacti
 		return
 	}
 
-	// Discord 要求 3 秒內回應；逆位要下載+旋轉圖會超時，
-	// 所以先 defer（顯示「思考中…」），算完再用 FollowUp 補上結果。
+	// Discord 要求 3 秒內回應；逆位要下載+旋轉圖會超時，所以先 defer。
+	// 用 DeferredMessageUpdate（靜默確認按鈕點擊），不會冒出「思考中…」佔位訊息，
+	// 因此也不會有那則無法靜音的通知聲；結果改用一般靜音頻道訊息送出。
 	if err := session.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-		Type: discordgo.InteractionResponseDeferredChannelMessageWithSource,
+		Type: discordgo.InteractionResponseDeferredMessageUpdate,
 	}); err != nil {
 		log.Printf("[Discord] defer 失敗: %v", err)
 		return
@@ -34,8 +35,9 @@ func handleDiscordInteraction(session *discordgo.Session, i *discordgo.Interacti
 
 	card, _, err := GetRandomTarot()
 	if err != nil {
-		session.FollowupMessageCreate(i.Interaction, false, &discordgo.WebhookParams{
+		session.ChannelMessageSendComplex(i.ChannelID, &discordgo.MessageSend{
 			Content: "❌ 抽牌失敗，請稍後再試",
+			Flags:   discordgo.MessageFlagsSuppressNotifications,
 		})
 		return
 	}
@@ -44,7 +46,7 @@ func handleDiscordInteraction(session *discordgo.Session, i *discordgo.Interacti
 	embed := &discordgo.MessageEmbed{
 		Description: fmt.Sprintf("**%s** 已為您占卜了", username),
 	}
-	params := &discordgo.WebhookParams{}
+	params := &discordgo.MessageSend{}
 
 	if card.Reversed {
 		orientation = "逆位"
@@ -67,10 +69,15 @@ func handleDiscordInteraction(session *discordgo.Session, i *discordgo.Interacti
 	}
 
 	embed.Title = fmt.Sprintf("🔮 %s（%s）· %s", card.NameZh, card.Name, orientation)
+	if card.Meaning != "" {
+		embed.Fields = []*discordgo.MessageEmbedField{
+			{Name: "牌義", Value: card.Meaning},
+		}
+	}
 	params.Embeds = []*discordgo.MessageEmbed{embed}
 	params.Flags = discordgo.MessageFlagsSuppressNotifications // 靜音傳送，不跳通知
 
-	if _, err := session.FollowupMessageCreate(i.Interaction, false, params); err != nil {
+	if _, err := session.ChannelMessageSendComplex(i.ChannelID, params); err != nil {
 		log.Printf("[Discord] 發送占卜結果失敗: %v", err)
 	}
 

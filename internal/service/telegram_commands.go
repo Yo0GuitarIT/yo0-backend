@@ -78,7 +78,7 @@ func drawTarotPhoto(chatID int64) (telegramapi.PhotoConfig, error) {
 		photo = telegramapi.NewPhoto(chatID, telegramapi.FileURL(card.Image))
 	}
 
-	photo.Caption = fmt.Sprintf("🔮 %s（%s）· %s", card.NameZh, card.Name, orientation)
+	photo.Caption = fmt.Sprintf("🔮 %s（%s）· %s\n%s", card.NameZh, card.Name, orientation, card.Meaning)
 	return photo, nil
 }
 

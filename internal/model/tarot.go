@@ -6,5 +6,6 @@ type Tarot struct {
 	Arcana   string `json:"arcana"`   // "Major" 或 "Minor"
 	Suit     string `json:"suit"`     // 小牌的牌組（大牌為空）
 	Image    string `json:"image"`    // RWS 牌面圖片網址（Wikimedia，公有領域）
+	Meaning  string `json:"meaning"`  // 依正/逆位對應的牌義（一句話）
 	Reversed bool   `json:"reversed"` // true = 逆位
 }
