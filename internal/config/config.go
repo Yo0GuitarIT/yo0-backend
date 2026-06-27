@@ -33,3 +33,11 @@ func WeatherAPIKey() (string, error) {
 func UnsplashAccessKey() string {
 	return os.Getenv("UNSPLASH_ACCESS_KEY")
 }
+
+func DiscordBotToken() string {
+	return os.Getenv("DISCORD_BOT_TOKEN")
+}
+
+func DiscordChannelID() string {
+	return os.Getenv("DISCORD_CHANNEL_ID")
+}

@@ -16,6 +16,13 @@ func main() {
 		}
 	}()
 
+	// 背景執行 Discord Bot（Gateway），未設定 token 時會自行略過
+	go func() {
+		if err := service.StartDiscordBot(); err != nil {
+			log.Printf("Discord bot 略過/錯誤: %v", err)
+		}
+	}()
+
 	// 建立 Gin 引擎，附帶 Logger 和 Recovery middleware
 	routerEngine := gin.Default()
 
