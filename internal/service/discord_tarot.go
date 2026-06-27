@@ -31,6 +31,19 @@ func handleDiscordInteraction(session *discordgo.Session, i *discordgo.Interacti
 	// 點擊後立即把被點的這顆按鈕變灰，只留稍後補貼的最新一顆可點
 	disableTarotButton(session, i.Message)
 
+	// 每人每天限抽一次：今天已抽過就只給私人提示，不再抽牌
+	if !tryMarkDraw(discordUserID(i)) {
+		session.FollowupMessageCreate(i.Interaction, false, &discordgo.WebhookParams{
+			Content: "🔮 你今天已經占卜過囉，明天再來吧～",
+			Flags:   discordgo.MessageFlagsEphemeral, // 只有點擊者自己看得到
+		})
+		// 一樣補貼一顆新按鈕，讓其他人或明天的你能繼續抽
+		if err := postTarotButton(session, i.ChannelID); err != nil {
+			log.Printf("[Discord] 補貼按鈕失敗: %v", err)
+		}
+		return
+	}
+
 	username := discordUsername(i)
 
 	card, _, err := GetRandomTarot()
@@ -111,6 +124,17 @@ func disableTarotButton(session *discordgo.Session, msg *discordgo.Message) {
 	}); err != nil {
 		log.Printf("[Discord] 停用舊按鈕失敗: %v", err)
 	}
+}
+
+// discordUserID 取點擊者的使用者 ID，作為每日抽牌限制的 key。
+func discordUserID(i *discordgo.InteractionCreate) string {
+	if i.Member != nil && i.Member.User != nil {
+		return i.Member.User.ID
+	}
+	if i.User != nil {
+		return i.User.ID
+	}
+	return ""
 }
 
 // discordUsername 取點擊者的顯示名稱：伺服器暱稱優先，否則用帳號名。
