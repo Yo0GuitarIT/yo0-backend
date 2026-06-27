@@ -48,6 +48,7 @@ func postTarotButton(session *discordgo.Session, channelID string) error {
 
 	_, err := session.ChannelMessageSendComplex(channelID, &discordgo.MessageSend{
 		Content: "🔮 今日塔羅占卜，點下面的按鈕抽一張牌：",
+		Flags:   discordgo.MessageFlagsSuppressNotifications, // 靜音傳送，不跳通知
 		Components: []discordgo.MessageComponent{
 			discordgo.ActionsRow{
 				Components: []discordgo.MessageComponent{

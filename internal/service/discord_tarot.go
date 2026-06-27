@@ -68,6 +68,7 @@ func handleDiscordInteraction(session *discordgo.Session, i *discordgo.Interacti
 
 	embed.Title = fmt.Sprintf("🔮 %s（%s）· %s", card.NameZh, card.Name, orientation)
 	params.Embeds = []*discordgo.MessageEmbed{embed}
+	params.Flags = discordgo.MessageFlagsSuppressNotifications // 靜音傳送，不跳通知
 
 	if _, err := session.FollowupMessageCreate(i.Interaction, false, params); err != nil {
 		log.Printf("[Discord] 發送占卜結果失敗: %v", err)
