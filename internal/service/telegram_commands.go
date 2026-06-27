@@ -49,5 +49,5 @@ func handleImageCommand(botClient *telegramapi.BotAPI, message *telegramapi.Mess
 		return
 	}
 
-	botClient.Send(telegramapi.NewMessage(chatID, photo.URLs.Regular))
+	botClient.Send(telegramapi.NewPhoto(chatID, telegramapi.FileURL(photo.URLs.Regular)))
 }

@@ -38,7 +38,7 @@ func SendMorningPush(chatID int64) error {
 	}
 
 	imageURL := photo.URLs.Regular
-	if _, err := botInstance.Send(telegramapi.NewMessage(chatID, imageURL)); err != nil {
+	if _, err := botInstance.Send(telegramapi.NewPhoto(chatID, telegramapi.FileURL(imageURL))); err != nil {
 		return fmt.Errorf("發送照片失敗: %w", err)
 	}
 
