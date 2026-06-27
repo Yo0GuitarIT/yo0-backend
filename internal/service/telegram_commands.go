@@ -1,6 +1,7 @@
 package service
 
 import (
+	"fmt"
 	"strings"
 
 	telegramapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -50,4 +51,46 @@ func handleImageCommand(botClient *telegramapi.BotAPI, message *telegramapi.Mess
 	}
 
 	botClient.Send(telegramapi.NewPhoto(chatID, telegramapi.FileURL(photo.URLs.Regular)))
+}
+
+// drawTarotPhoto 抽一張牌，組成可直接發送的 PhotoConfig（含正逆位處理）。
+// 供 /tarot 指令與每日推播共用同一段邏輯。
+func drawTarotPhoto(chatID int64) (telegramapi.PhotoConfig, error) {
+	card, _, err := GetRandomTarot()
+	if err != nil {
+		return telegramapi.PhotoConfig{}, err
+	}
+
+	orientation := "正位"
+	var photo telegramapi.PhotoConfig
+	if card.Reversed {
+		orientation = "逆位"
+		// 逆位：下載牌面圖、旋轉 180° 後以 bytes 傳送
+		imgBytes, rotErr := fetchRotatedImage(card.Image)
+		if rotErr != nil {
+			// 旋轉失敗就退回正向網址圖，至少不會發不出牌
+			photo = telegramapi.NewPhoto(chatID, telegramapi.FileURL(card.Image))
+		} else {
+			photo = telegramapi.NewPhoto(chatID, telegramapi.FileBytes{Name: "tarot.jpg", Bytes: imgBytes})
+		}
+	} else {
+		// 正位：直接給網址，由 Telegram 抓圖（不必下載）
+		photo = telegramapi.NewPhoto(chatID, telegramapi.FileURL(card.Image))
+	}
+
+	photo.Caption = fmt.Sprintf("🔮 %s（%s）· %s", card.NameZh, card.Name, orientation)
+	return photo, nil
+}
+
+// handleTarotCommand 處理 /tarot 指令：抽一張牌並回傳牌面圖片
+func handleTarotCommand(botClient *telegramapi.BotAPI, message *telegramapi.Message) {
+	chatID := message.Chat.ID
+
+	photo, err := drawTarotPhoto(chatID)
+	if err != nil {
+		botClient.Send(telegramapi.NewMessage(chatID, "❌ 抽牌失敗，請稍後再試"))
+		return
+	}
+
+	botClient.Send(photo)
 }

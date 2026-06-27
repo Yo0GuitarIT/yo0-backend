@@ -42,5 +42,14 @@ func SendMorningPush(chatID int64) error {
 		return fmt.Errorf("發送照片失敗: %w", err)
 	}
 
+	// 第三則：今日塔羅牌（與 /tarot 指令共用同一段邏輯）
+	tarotPhoto, err := drawTarotPhoto(chatID)
+	if err != nil {
+		return fmt.Errorf("抽塔羅牌失敗: %w", err)
+	}
+	if _, err := botInstance.Send(tarotPhoto); err != nil {
+		return fmt.Errorf("發送塔羅牌失敗: %w", err)
+	}
+
 	return nil
 }

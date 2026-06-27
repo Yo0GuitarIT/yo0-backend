@@ -54,7 +54,8 @@ func handleCommand(botClient *telegramapi.BotAPI, message *telegramapi.Message) 
 				"/weather 城市名 - 查指定城市（例：/weather 高雄市）\n"+
 				"/setcity 城市名 - 設定你的預設城市\n"+
 				"/mycity - 查看你的預設城市\n"+
-				"/image - 取得一張隨機照片"))
+				"/image - 取得一張隨機照片\n"+
+				"/tarot - 抽一張塔羅牌"))
 
 	case "weather":
 		handleWeatherCommand(botClient, message)
@@ -68,6 +69,9 @@ func handleCommand(botClient *telegramapi.BotAPI, message *telegramapi.Message) 
 
 	case "image":
 		handleImageCommand(botClient, message)
+
+	case "tarot":
+		handleTarotCommand(botClient, message)
 
 	default:
 		botClient.Send(telegramapi.NewMessage(chatID, "不支援的指令，請使用 /menu 查看可用功能"))
