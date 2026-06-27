@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 )
 
 func TelegramBotToken() string {
@@ -38,6 +39,22 @@ func DiscordBotToken() string {
 	return os.Getenv("DISCORD_BOT_TOKEN")
 }
 
-func DiscordChannelID() string {
-	return os.Getenv("DISCORD_CHANNEL_ID")
+// DiscordChannelIDs 讀取 DISCORD_CHANNEL_IDS（逗號分隔多個頻道 ID）。
+// 若未設定則退而讀取舊的 DISCORD_CHANNEL_ID，以維持向下相容。
+func DiscordChannelIDs() []string {
+	s := os.Getenv("DISCORD_CHANNEL_IDS")
+	if s == "" {
+		if single := os.Getenv("DISCORD_CHANNEL_ID"); single != "" {
+			return []string{single}
+		}
+		return nil
+	}
+	parts := strings.Split(s, ",")
+	ids := make([]string, 0, len(parts))
+	for _, p := range parts {
+		if trimmed := strings.TrimSpace(p); trimmed != "" {
+			ids = append(ids, trimmed)
+		}
+	}
+	return ids
 }

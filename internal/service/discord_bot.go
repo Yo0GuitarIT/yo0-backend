@@ -35,12 +35,42 @@ func StartDiscordBot() error {
 
 	log.Printf("Discord bot 已啟動：%s", session.State.User.Username)
 
+	// 啟動時在每個設定的頻道貼出「恩雅婆婆開放占卜摟」按鈕
+	for _, chID := range config.DiscordChannelIDs() {
+		if err := postStartupButton(session, chID); err != nil {
+			log.Printf("[Discord] 啟動時貼按鈕失敗（頻道 %s）: %v", chID, err)
+		}
+	}
+
 	// 保持 Gateway 連線（直到程式結束）
 	select {}
 }
 
+// postStartupButton 在指定頻道貼出啟動公告訊息與「🔮 抽牌」按鈕。
+func postStartupButton(session *discordgo.Session, channelID string) error {
+	if channelID == "" {
+		return fmt.Errorf("頻道 ID 為空")
+	}
+	_, err := session.ChannelMessageSendComplex(channelID, &discordgo.MessageSend{
+		Content: "恩雅婆婆開放占卜摟 🔮",
+		Flags:   discordgo.MessageFlagsSuppressNotifications,
+		Components: []discordgo.MessageComponent{
+			discordgo.ActionsRow{
+				Components: []discordgo.MessageComponent{
+					discordgo.Button{
+						Label:    "🔮 抽牌",
+						Style:    discordgo.PrimaryButton,
+						CustomID: drawTarotButtonID,
+					},
+				},
+			},
+		},
+	})
+	return err
+}
+
 // postTarotButton 在指定頻道貼一則帶「🔮 抽牌」按鈕的訊息。
-// 啟動時不主動貼，改由每次抽完牌後補貼，讓按鈕永遠在最新訊息底部。
+// 由每次抽完牌後補貼，讓按鈕永遠在最新訊息底部。
 func postTarotButton(session *discordgo.Session, channelID string) error {
 	if channelID == "" {
 		return fmt.Errorf("頻道 ID 為空")
