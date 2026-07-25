@@ -11,9 +11,13 @@ import (
 )
 
 // fetchRotatedImage 下載牌面圖、旋轉 180 度（逆位用），回傳 JPEG bytes。
-// 為了縮小流量與加快解碼，下載時用 Wikimedia 的 ?width 參數取較小的縮圖。
+// Wikimedia 支援 ?width=600 縮圖參數；JoJo wiki 為靜態 CDN，不加參數。
 func fetchRotatedImage(imageURL string) ([]byte, error) {
-	req, err := http.NewRequest("GET", imageURL+"?width=600", nil)
+	requestURL := imageURL
+	if len(imageURL) > 20 && imageURL[:20] == "https://commons.wiki" {
+		requestURL = imageURL + "?width=600"
+	}
+	req, err := http.NewRequest("GET", requestURL, nil)
 	if err != nil {
 		return nil, err
 	}
