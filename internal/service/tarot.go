@@ -1,12 +1,34 @@
 package service
 
 import (
+	_ "embed"
+	"encoding/json"
 	"fmt"
+	"log"
 	"math/rand/v2"
-	"strings"
 
 	"github.com/Yo0GuitarIT/yo0-backend/internal/model"
 )
+
+//go:embed tarot_cards.json
+var tarotCardsJSON []byte
+
+var jojoImageMap = loadJoJoImages()
+
+func loadJoJoImages() map[string]string {
+	var cards []struct {
+		Name     string `json:"name"`
+		ImageURL string `json:"imageUrl"`
+	}
+	if err := json.Unmarshal(tarotCardsJSON, &cards); err != nil {
+		log.Panicf("載入 tarot_cards.json 失敗: %v", err)
+	}
+	m := make(map[string]string, len(cards))
+	for _, c := range cards {
+		m[c.Name] = c.ImageURL
+	}
+	return m
+}
 
 // 大阿爾克那 22 張
 var majorArcana = []string{
@@ -82,16 +104,12 @@ func tarotImageURL(fileName string) string {
 func buildDeck() []model.Tarot {
 	deck := make([]model.Tarot, 0, 78)
 
-	for i, name := range majorArcana {
-		// "The Fool" → "Fool"、"Wheel of Fortune" → "Wheel_of_Fortune"
-		stem := strings.ReplaceAll(strings.TrimPrefix(name, "The "), " ", "_")
-		fileName := fmt.Sprintf("RWS_Tarot_%02d_%s.jpg", i, stem) // 例如 RWS_Tarot_00_Fool.jpg
-
+	for _, name := range majorArcana {
 		deck = append(deck, model.Tarot{
 			Name:   name,
 			NameZh: majorArcanaZh[name],
 			Arcana: "Major",
-			Image:  tarotImageURL(fileName),
+			Image:  jojoImageMap[name],
 		})
 	}
 
