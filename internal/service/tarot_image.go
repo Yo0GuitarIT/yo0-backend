@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"image"
 	"image/jpeg"
+	_ "image/png" // 註冊 PNG decoder，讓 image.Decode 能解析 JoJo wiki 的 .png 圖片
 	"net/http"
 	"time"
 )
