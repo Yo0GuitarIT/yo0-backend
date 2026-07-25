@@ -5,19 +5,27 @@ import (
 	"fmt"
 	"image"
 	"image/jpeg"
+	_ "image/png" // 註冊 PNG decoder，讓 image.Decode 能解析 JoJo wiki 的 .png 圖片
 	"net/http"
 	"time"
 )
 
 // fetchRotatedImage 下載牌面圖、旋轉 180 度（逆位用），回傳 JPEG bytes。
-// 為了縮小流量與加快解碼，下載時用 Wikimedia 的 ?width 參數取較小的縮圖。
+// Wikimedia 支援 ?width=600 縮圖參數；JoJo wiki 為靜態 CDN，不加參數。
 func fetchRotatedImage(imageURL string) ([]byte, error) {
-	req, err := http.NewRequest("GET", imageURL+"?width=600", nil)
+	requestURL := imageURL
+	if len(imageURL) > 20 && imageURL[:20] == "https://commons.wiki" {
+		requestURL = imageURL + "?width=600"
+	}
+	req, err := http.NewRequest("GET", requestURL, nil)
 	if err != nil {
 		return nil, err
 	}
-	// Wikimedia 會擋掉沒有 User-Agent 的請求（預設的 Go-http-client 會被 403）
+	// Wikimedia 與 JoJo wiki 都需要 User-Agent；JoJo wiki CDN 額外需要 Referer
 	req.Header.Set("User-Agent", "yo0-backend/1.0 (https://github.com/Yo0GuitarIT/yo0-backend)")
+	if len(imageURL) > 25 && imageURL[8:25] == "static.jojowiki.com" {
+		req.Header.Set("Referer", "https://jojowiki.com/")
+	}
 
 	client := &http.Client{Timeout: 15 * time.Second}
 	resp, err := client.Do(req)
