@@ -21,8 +21,11 @@ func fetchRotatedImage(imageURL string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	// Wikimedia 會擋掉沒有 User-Agent 的請求（預設的 Go-http-client 會被 403）
+	// Wikimedia 與 JoJo wiki 都需要 User-Agent；JoJo wiki CDN 額外需要 Referer
 	req.Header.Set("User-Agent", "yo0-backend/1.0 (https://github.com/Yo0GuitarIT/yo0-backend)")
+	if len(imageURL) > 25 && imageURL[8:25] == "static.jojowiki.com" {
+		req.Header.Set("Referer", "https://jojowiki.com/")
+	}
 
 	client := &http.Client{Timeout: 15 * time.Second}
 	resp, err := client.Do(req)
